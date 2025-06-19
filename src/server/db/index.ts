@@ -1,3 +1,5 @@
+import "server-only";
+
 import { drizzle } from "drizzle-orm/libsql";
 
 import { Effect, Layer, ManagedRuntime, Redacted } from "effect";
