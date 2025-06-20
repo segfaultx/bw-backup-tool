@@ -2,7 +2,9 @@
 
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -15,6 +17,7 @@ export default function SignIn() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const router = useRouter();
 
     return (
         <Card className="max-w-md">
@@ -79,11 +82,17 @@ export default function SignIn() {
                                     password
                                 },
                                 {
-                                    onRequest: (ctx) => {
+                                    onRequest: () => {
                                         setLoading(true);
                                     },
                                     onResponse: (ctx) => {
                                         setLoading(false);
+                                        if (!ctx.response.ok) {
+                                            toast.error("Login failed. Please check your credentials and try again.");
+                                            return;
+                                        }
+
+                                        router.push("/");
                                     },
                                 },
                             );
@@ -98,7 +107,7 @@ export default function SignIn() {
                     <Link
                         href="/auth?mode=signup"
                         className="text-center text-sm underline">
-                        Don't have an account yet? Click here to sign up
+                        Don&apost have an account yet? Click here to sign up
                     </Link>
                 </div>
 
