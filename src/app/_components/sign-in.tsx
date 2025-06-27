@@ -107,7 +107,7 @@ export default function SignIn() {
                     <Link
                         href="/auth?mode=signup"
                         className="text-center text-sm underline">
-                        Don&apost have an account yet? Click here to sign up
+                        Don&apos;t have an account yet? Click here to sign up
                     </Link>
                 </div>
 
