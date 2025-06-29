@@ -1,32 +1,32 @@
-import * as Reactivity from "@effect/experimental/Reactivity";
-import * as SqliteDrizzle from "@effect/sql-drizzle/Sqlite";
-import { SqliteClient } from "@effect/sql-sqlite-node";
-import * as Client from "@effect/sql/SqlClient";
-import { Context, Effect, Layer, ManagedRuntime, Redacted } from "effect";
+import { createClient, type Client } from "@libsql/client";
+import { drizzle, type LibSQLDatabase } from "drizzle-orm/libsql";
+import { Effect, Layer, Redacted } from "effect";
 import "server-only";
 import { EnvVars } from "~/env";
 import * as schema from "./schema";
 
-const makeSqlLiteClient = () => Effect.gen(function* () {
+class SqliteClient extends Effect.Tag("SqliteClient")<SqliteClient, Client>() { }
+
+const SqliteLive = Layer.scoped(SqliteClient, Effect.gen(function* () {
   const { DATABASE_URL } = yield* EnvVars;
+  yield* Effect.log("Creating SQLite client...");
 
-  return yield* SqliteClient.make({
-    filename: Redacted.value(DATABASE_URL),
+  return createClient({
+    url: Redacted.value(DATABASE_URL),
   });
-}).pipe(Effect.provide(EnvVars.Default));
+}).pipe(Effect.provide(EnvVars.Default)));
 
-const SqlLive = Layer.scopedContext(
-  Effect.map(makeSqlLiteClient(), (client) =>
-    Context.make(SqliteClient.SqliteClient, client).pipe(
-      Context.add(Client.SqlClient, client)
-    ))
-).pipe(Layer.provide(Reactivity.layer))
+const makeDb = Effect.gen(function* () {
+  const sqliteClient = yield* SqliteClient;
 
-const DrizzleLive = SqliteDrizzle.layer
-  .pipe(Layer.provide(SqlLive));
+  yield* Effect.log('Setting up database connection...');
+  const db = drizzle(sqliteClient, { schema });
+  yield* Effect.log('Database connection established');
 
-const DatabaseLive = Layer.mergeAll(DrizzleLive, SqlLive)
+  return db;
+});
 
-const dbRuntime = ManagedRuntime.make(DatabaseLive);
+export class Database extends Effect.Tag('Database')<Database, LibSQLDatabase<typeof schema>>() { }
 
-export default dbRuntime;
+export const DatabaseLive = Layer.scoped(Database, makeDb)
+  .pipe(Layer.provide(SqliteLive));
