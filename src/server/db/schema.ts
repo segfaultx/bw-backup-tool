@@ -1,19 +1,12 @@
-import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const posts = sqliteTable(
-  "post",
-  (d) => ({
-    id: d.integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
-    name: d.text({ length: 256 }),
-    createdAt: d
-      .integer({ mode: "timestamp" })
-      .default(sql`(unixepoch())`)
-      .notNull(),
-    updatedAt: d.integer({ mode: "timestamp" }).$onUpdate(() => new Date()),
-  }),
-  (t) => [index("name_idx").on(t.name)],
-);
+export const vaultConfig = sqliteTable("vault_config", {
+  id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: text("user_id").references(() => user.id),
+  clientId: text({ length: 256 }),
+  clientSecret: text({ length: 256 }),
+  vaultSecret: text({ length: 256 })
+});
 
 export const user = sqliteTable("user", {
   id: text('id').primaryKey(),

@@ -1,30 +1,32 @@
-import { drizzle } from "drizzle-orm/libsql";
-import { Effect, Layer, ManagedRuntime, Redacted } from "effect";
+import * as Reactivity from "@effect/experimental/Reactivity";
+import * as SqliteDrizzle from "@effect/sql-drizzle/Sqlite";
+import { SqliteClient } from "@effect/sql-sqlite-node";
+import * as Client from "@effect/sql/SqlClient";
+import { Context, Effect, Layer, ManagedRuntime, Redacted } from "effect";
 import "server-only";
 import { EnvVars } from "~/env";
+import * as schema from "./schema";
 
-let dbInstance: ReturnType<typeof drizzle> | null = null;
-
-const db = Effect.gen(function* () {
-  if (dbInstance) return {
-    db: dbInstance
-  } as const;
-
-  yield* Effect.log('Setting up database connection...');
+const makeSqlLiteClient = () => Effect.gen(function* () {
   const { DATABASE_URL } = yield* EnvVars;
-  dbInstance = drizzle(Redacted.value(DATABASE_URL));
-  yield* Effect.log('Database connection established');
 
-  return {
-    db: dbInstance
-  } as const;
-});
+  return yield* SqliteClient.make({
+    filename: Redacted.value(DATABASE_URL),
+  });
+}).pipe(Effect.provide(EnvVars.Default));
 
-export class Database extends Effect.Tag('Database')<Database, Effect.Effect.Success<typeof db>>() { }
+const SqlLive = Layer.scopedContext(
+  Effect.map(makeSqlLiteClient(), (client) =>
+    Context.make(SqliteClient.SqliteClient, client).pipe(
+      Context.add(Client.SqlClient, client)
+    ))
+).pipe(Layer.provide(Reactivity.layer))
 
-const dbLive = Layer.scoped(Database, db)
-  .pipe(Layer.provide(EnvVars.Default));
+const DrizzleLive = SqliteDrizzle.layer
+  .pipe(Layer.provide(SqlLive));
 
-const dbRuntime = ManagedRuntime.make(dbLive);
+const DatabaseLive = Layer.mergeAll(DrizzleLive, SqlLive)
+
+const dbRuntime = ManagedRuntime.make(DatabaseLive);
 
 export default dbRuntime;
