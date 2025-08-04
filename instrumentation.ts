@@ -1,14 +1,18 @@
+import { NodeContext } from "@effect/platform-node";
 import { Effect } from "effect";
-import { VaultService } from "~/server/db/vault-service";
+import { BWClient } from "~/server/bw/bw-client";
 
 export async function register() {
-    await Effect.runPromise(Effect.gen(function* () {
-        yield* Effect.log("Registering VaultService instrumentation...");
-        const vaultService = yield* VaultService;
-        const result = yield* vaultService.getVaultConfigByUserId("pTLkkx3zcA70FmKWCAjjrVWPhhK6yAwg")
-            .pipe(Effect.catchAll(error =>
-                Effect.logInfo("doof gelaufen").pipe(Effect.flatMap(() => Effect.succeed({ asd: 123 }))))
-            );
-        yield* Effect.log(`Vault Config: ${JSON.stringify(result)}`);
-    }).pipe(Effect.provide(VaultService.Default)))
+  await Effect.runPromise(
+    Effect.gen(function* () {
+      const service = yield* BWClient;
+
+      const [a, b, c] = yield* Effect.scoped(service.login());
+
+      yield* Effect.logInfo(`Result: ${a} - ${b} - ${c}`);
+    }).pipe(
+      Effect.provide(BWClient.Default),
+      Effect.provide(NodeContext.layer),
+    ),
+  );
 }

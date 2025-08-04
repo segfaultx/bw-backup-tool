@@ -15,7 +15,9 @@ export class EnvVars extends Effect.Service<EnvVars>()('EnvVars', {
     yield* Effect.log('Loading environment variables...');
 
     return {
-      DATABASE_URL: yield* Config.redacted('DATABASE_URL')
+      DATABASE_URL: yield* Config.redacted('DATABASE_URL'),
+      BW_CLIENTID: yield* Config.redacted('BW_CLIENTID'),
+      BW_CLIENTSECRET: yield* Config.redacted('BW_CLIENTSECRET'),
     } as const;
   }).pipe(Effect.provide(EnvProviderLayer))
 }) { }
